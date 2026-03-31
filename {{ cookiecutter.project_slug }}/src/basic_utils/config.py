@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     """Базовые настройки приложения"""
     
     # Настройки приложения
-    app_name: str = {{ project_name }}
+    app_name: str = "{{ cookiecutter.project_name }}"
     app_version: str = "1.0.0"
     debug: bool = True
     environment: str = "development"
