@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from basic_utils.logger import get_logger
 from contextlib import asynccontextmanager
 from basic_utils.config import settings
-import app.admin as admin_models
 from prometheus_fastapi_instrumentator import Instrumentator
 from middleware.timing import TimingMiddleware
 
