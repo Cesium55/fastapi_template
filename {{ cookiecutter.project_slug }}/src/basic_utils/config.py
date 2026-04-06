@@ -25,9 +25,10 @@ class Settings(BaseSettings):
     db_name: str = "food_link"
     
     # Настройки CORS
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:8080"]
+    allowed_origins: list[str] = ["*"]
     allowed_methods: list[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     allowed_headers: list[str] = ["*"]
+    cors_allow_credentials: bool = False
     
     # Настройки логирования
     log_level: str = "INFO"
@@ -49,6 +50,19 @@ class Settings(BaseSettings):
     s3_secret_access_key: str = "minioadmin"
     s3_bucket_name: str = "food-link-images"
     s3_region_name: str = "us-east-1"
+
+    # Настройки JWT
+    jwt_algorithms: list[str] = ["RS256"]
+    jwt_audience: Optional[str] = None
+    jwt_issuer: Optional[str] = None
+    jwt_verify_exp: bool = True
+    jwt_public_key: str = ""
+    jwt_public_key_url: str = "http://localhost:8000/keys/public"
+    jwt_public_key_response_field: str = "public_key"
+    jwt_public_key_request_timeout: float = 5.0
+    jwt_public_key_cache_prefix: str = "jwt:public_key"
+    jwt_public_key_cache_ttl: int = 3600
+    jwt_default_key_id: str = "default"
 
     
     class Config:

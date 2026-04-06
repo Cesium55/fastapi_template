@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.12.14",
     "aiofiles>=25.1.0",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
@@ -19,4 +20,5 @@ dependencies = [
     "redis[hiredis]>=7.4.0",
     "sqladmin[full]>=0.24.0",
     "sqlalchemy>=2.0.48",
+    "cryptography>=46.0.6",
 ]
