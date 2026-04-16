@@ -40,5 +40,5 @@ Instrumentator().instrument(app).expose(app)
 @app.get("/")
 async def index():
     logger = get_logger("main")
-    await logger.info("index called")
-    return {"message": "index"}
+    logger.info("index called")
+    return {"status": "ok"}

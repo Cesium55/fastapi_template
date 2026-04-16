@@ -1,111 +1,59 @@
-import asyncio
-import logging
-from pathlib import Path
-from typing import AsyncGenerator, Generator
+import sys
+import threading
+from datetime import datetime
+from typing import Optional
 
-from basic_utils.config import settings
-
-
-LOGS_DIR = Path(__file__).resolve().parents[2] / "logs"
-LOG_FILE = LOGS_DIR / "app.log"
+from config import settings
 
 
-def _configure_logger(name: str) -> logging.Logger:
-    """
-    Создает и настраивает стандартный logger.
-
-    Повторная настройка одного и того же logger не выполняется, чтобы
-    не дублировать handlers при множественных вызовах.
-    """
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
-
-    logger = logging.getLogger(name)
-    logger.setLevel(settings.log_level.upper())
-    logger.propagate = False
-
-    if logger.handlers:
-        return logger
-
-    formatter = logging.Formatter(settings.log_format)
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-
-    file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-
-    logger.addHandler(stream_handler)
-    logger.addHandler(file_handler)
-    return logger
-
-
-class SyncLogger:
-    """Синхронная обертка над стандартным logging.Logger."""
+class Logger:
+    """Simple synchronous stdout logger."""
 
     def __init__(self, name: str) -> None:
-        self._logger = _configure_logger(name)
+        self.name = name
+        self._log_level = getattr(settings, "log_level", "INFO").upper()
+        self._write_lock = threading.Lock()
 
-    def debug(self, message: str, *args, **kwargs) -> None:
-        self._logger.debug(message, *args, **kwargs)
+    def _format_line(self, level: str, message: str, extra: Optional[dict] = None) -> str:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_message = f"{timestamp} - {self.name} - {level} - {message}"
+        if extra:
+            log_message += f" - {extra}"
+        return f"{log_message}\n"
 
-    def info(self, message: str, *args, **kwargs) -> None:
-        self._logger.info(message, *args, **kwargs)
+    def _write_line_sync(self, line: str) -> None:
+        try:
+            with self._write_lock:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+        except Exception as exc:
+            print(f"Error writing log line: {exc}")
 
-    def warning(self, message: str, *args, **kwargs) -> None:
-        self._logger.warning(message, *args, **kwargs)
+    def _log(self, level: str, message: str, extra: Optional[dict] = None) -> None:
+        line = self._format_line(level, message, extra)
+        self._write_line_sync(line)
 
-    def error(self, message: str, *args, **kwargs) -> None:
-        self._logger.error(message, *args, **kwargs)
+    def debug(self, message: str, extra: Optional[dict] = None) -> None:
+        self._log("DEBUG", message, extra)
 
-    def critical(self, message: str, *args, **kwargs) -> None:
-        self._logger.critical(message, *args, **kwargs)
+    def info(self, message: str, extra: Optional[dict] = None) -> None:
+        self._log("INFO", message, extra)
 
-    def exception(self, message: str, *args, **kwargs) -> None:
-        self._logger.exception(message, *args, **kwargs)
+    def warning(self, message: str, extra: Optional[dict] = None) -> None:
+        self._log("WARNING", message, extra)
 
+    def error(self, message: str, extra: Optional[dict] = None) -> None:
+        self._log("ERROR", message, extra)
 
-class AsyncLogger:
-    """Асинхронная обертка над стандартным logging.Logger."""
-
-    def __init__(self, name: str) -> None:
-        self._logger = _configure_logger(name)
-
-    async def debug(self, message: str, *args, **kwargs) -> None:
-        await asyncio.to_thread(self._logger.debug, message, *args, **kwargs)
-
-    async def info(self, message: str, *args, **kwargs) -> None:
-        await asyncio.to_thread(self._logger.info, message, *args, **kwargs)
-
-    async def warning(self, message: str, *args, **kwargs) -> None:
-        await asyncio.to_thread(self._logger.warning, message, *args, **kwargs)
-
-    async def error(self, message: str, *args, **kwargs) -> None:
-        await asyncio.to_thread(self._logger.error, message, *args, **kwargs)
-
-    async def critical(self, message: str, *args, **kwargs) -> None:
-        await asyncio.to_thread(self._logger.critical, message, *args, **kwargs)
-
-    async def exception(self, message: str, *args, **kwargs) -> None:
-        await asyncio.to_thread(self._logger.exception, message, *args, **kwargs)
+    def critical(self, message: str, extra: Optional[dict] = None) -> None:
+        self._log("CRITICAL", message, extra)
 
 
-def get_sync_logger(name: str = "app") -> SyncLogger:
-    """Возвращает синхронный logger."""
-    return SyncLogger(name)
+_loggers: dict[str, Logger] = {}
 
 
-def get_logger(name: str = "app") -> AsyncLogger:
-    """Возвращает асинхронный logger."""
-    return AsyncLogger(name)
-
-
-def get_sync_logger_generator(name: str = "app") -> Generator[SyncLogger, None, None]:
-    """Синхронный генератор logger для dependency injection."""
-    yield get_sync_logger(name)
-
-
-async def get_async_logger_generator(
-    name: str = "app",
-) -> AsyncGenerator[AsyncLogger, None]:
-    """Асинхронный генератор logger для dependency injection."""
-    yield get_logger(name)
+def get_logger(name: str) -> Logger:
+    """Get or create a stdout logger."""
+    if name not in _loggers:
+        _loggers[name] = Logger(name=name)
+    return _loggers[name]
