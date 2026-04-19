@@ -3,7 +3,7 @@ import threading
 from datetime import datetime
 from typing import Optional
 
-from config import settings
+from basic_utils.config import settings
 
 
 class Logger:
